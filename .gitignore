@@ -1,0 +1,26 @@
+node_modules/
+.expo/
+dist/
+web-build/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# iOS
+ios/Pods/
+ios/build/
+
+# Android
+android/build/
+android/app/build/
+android/.gradle/
+
+# Certificates
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist

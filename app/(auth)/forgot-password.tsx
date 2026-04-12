@@ -1,0 +1,73 @@
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Alert, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useForgotPassword } from '@/hooks/useAuth';
+
+const schema = z.object({
+  phone: z
+    .string()
+    .regex(/^\+212[5-7]\d{8}$/, 'Numéro marocain invalide (+212XXXXXXXXX)'),
+});
+
+type Form = z.infer<typeof schema>;
+
+export default function ForgotPasswordScreen() {
+  const forgotPassword = useForgotPassword();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Form>({ resolver: zodResolver(schema) });
+
+  const onSubmit = async (data: Form) => {
+    try {
+      await forgotPassword.mutateAsync(data.phone);
+      router.push({
+        pathname: '/(auth)/otp',
+        params: { phone: data.phone, purpose: 'RESET_PASSWORD' },
+      });
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.response?.data?.message ?? 'Numéro introuvable');
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-primary">
+      <ScreenHeader title="Mot de passe oublié" back />
+      <View className="flex-1 px-6 gap-6 mt-6">
+        <Text className="text-slate-400 leading-6">
+          Entrez votre numéro de téléphone et nous vous enverrons un code pour réinitialiser votre mot de passe.
+        </Text>
+
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field: { value, onChange, onBlur } }) => (
+            <Input
+              label="Téléphone"
+              placeholder="+212612345678"
+              keyboardType="phone-pad"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.phone?.message}
+            />
+          )}
+        />
+
+        <Button
+          title="Envoyer le code"
+          onPress={handleSubmit(onSubmit)}
+          loading={forgotPassword.isPending}
+          size="lg"
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
