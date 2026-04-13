@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -9,23 +9,41 @@ import {
 } from 'lucide-react-native';
 import { useProviderStore } from '@/store/provider.store';
 
+function BadgeDot({ count }: { count: number }) {
+  if (!count) return null;
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: -4,
+        right: -8,
+        minWidth: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#ef4444',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 3,
+      }}
+    >
+      <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>
+        {count > 9 ? '9+' : count}
+      </Text>
+    </View>
+  );
+}
+
 function TabIcon({
   icon,
-  focused,
-  badge,
+  badge = 0,
 }: {
   icon: React.ReactNode;
-  focused: boolean;
   badge?: number;
 }) {
   return (
-    <View className="relative items-center justify-center">
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       {icon}
-      {badge && badge > 0 ? (
-        <View className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-danger items-center justify-center">
-          <Text className="text-white text-[10px] font-bold">{badge > 9 ? '9+' : badge}</Text>
-        </View>
-      ) : null}
+      <BadgeDot count={badge} />
     </View>
   );
 }
@@ -41,20 +59,21 @@ export default function DashboardLayout() {
           backgroundColor: '#1e293b',
           borderTopColor: '#334155',
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 80 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: '#3b82f6',
         tabBarInactiveTintColor: '#64748b',
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 2 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tableau',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon={<LayoutDashboard size={22} color={color} />} focused={focused} />
+          title: 'Accueil',
+          tabBarIcon: ({ color }) => (
+            <TabIcon icon={<LayoutDashboard size={22} color={color} />} />
           ),
         }}
       />
@@ -62,8 +81,8 @@ export default function DashboardLayout() {
         name="requests"
         options={{
           title: 'Demandes',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon={<ClipboardList size={22} color={color} />} focused={focused} />
+          tabBarIcon: ({ color }) => (
+            <TabIcon icon={<ClipboardList size={22} color={color} />} />
           ),
         }}
       />
@@ -71,8 +90,8 @@ export default function DashboardLayout() {
         name="missions"
         options={{
           title: 'Missions',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon={<Briefcase size={22} color={color} />} focused={focused} />
+          tabBarIcon: ({ color }) => (
+            <TabIcon icon={<Briefcase size={22} color={color} />} />
           ),
         }}
       />
@@ -80,10 +99,9 @@ export default function DashboardLayout() {
         name="messages"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ focused, color }) => (
+          tabBarIcon: ({ color }) => (
             <TabIcon
               icon={<MessageSquare size={22} color={color} />}
-              focused={focused}
               badge={unreadCount}
             />
           ),
@@ -93,8 +111,8 @@ export default function DashboardLayout() {
         name="profile"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon={<User size={22} color={color} />} focused={focused} />
+          tabBarIcon: ({ color }) => (
+            <TabIcon icon={<User size={22} color={color} />} />
           ),
         }}
       />

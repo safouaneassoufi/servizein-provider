@@ -9,22 +9,34 @@ interface ScreenHeaderProps {
   right?: React.ReactNode;
 }
 
-export function ScreenHeader({ title, subtitle, back = false, right }: ScreenHeaderProps) {
+export function ScreenHeader({
+  title,
+  subtitle,
+  back = false,
+  right,
+}: ScreenHeaderProps) {
   return (
-    <View className="flex-row items-center px-4 pt-4 pb-2 gap-3">
+    <View className="flex-row items-center px-4 py-3 gap-3">
       {back && (
         <Pressable
           onPress={() => router.back()}
+          hitSlop={8}
           className="w-9 h-9 rounded-full bg-slate-800 items-center justify-center"
         >
           <ChevronLeft size={20} color="#94a3b8" />
         </Pressable>
       )}
       <View className="flex-1">
-        <Text className="text-white text-xl font-bold">{title}</Text>
-        {subtitle && <Text className="text-slate-400 text-sm">{subtitle}</Text>}
+        <Text className="text-white text-lg font-bold" numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text className="text-slate-400 text-xs mt-0.5" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
-      {right}
+      {right ?? null}
     </View>
   );
 }

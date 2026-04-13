@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
@@ -9,36 +9,53 @@ import {
   FileText,
   Clock,
   LogOut,
-  Edit,
-  SendHorizonal,
+  Edit2,
+  Send,
+  TrendingUp,
+  ToggleLeft,
 } from 'lucide-react-native';
 import { useProviderStore } from '@/store/provider.store';
-import { useLogout } from '@/hooks/useAuth';
+import { useLogout, useProviderProfile } from '@/hooks/useAuth';
+import { useUpdateProvider } from '@/hooks/useProvider';
 import { Badge } from '@/components/ui/Badge';
 import { formatRating } from '@/utils/format';
+import type { KycStatus } from '@/types';
 
-function ProfileRow({
+function kycProps(status: KycStatus): { label: string; variant: 'success' | 'warning' | 'danger' } {
+  if (status === 'APPROVED') return { label: '✓ Vérifié', variant: 'success' };
+  if (status === 'REJECTED') return { label: '✗ Rejeté', variant: 'danger' };
+  if (status === 'UNDER_REVIEW') return { label: 'En examen', variant: 'warning' };
+  return { label: 'Non vérifié', variant: 'warning' };
+}
+
+function MenuRow({
   icon,
   label,
+  sublabel,
   onPress,
-  badge,
+  rightEl,
 }: {
   icon: React.ReactNode;
   label: string;
-  onPress: () => void;
-  badge?: string;
+  sublabel?: string;
+  onPress?: () => void;
+  rightEl?: React.ReactNode;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center px-4 py-4 border-b border-slate-700 gap-3"
+      className="flex-row items-center px-4 py-3.5 border-b border-slate-700/50 gap-3"
     >
-      <View className="w-8 h-8 rounded-lg bg-slate-700 items-center justify-center">
+      <View className="w-9 h-9 rounded-xl bg-slate-700 items-center justify-center">
         {icon}
       </View>
-      <Text className="flex-1 text-white font-medium">{label}</Text>
-      {badge && <Badge label={badge} variant="warning" />}
-      <ChevronRight size={16} color="#64748b" />
+      <View className="flex-1">
+        <Text className="text-white font-medium">{label}</Text>
+        {sublabel ? (
+          <Text className="text-slate-400 text-xs mt-0.5">{sublabel}</Text>
+        ) : null}
+      </View>
+      {rightEl ?? <ChevronRight size={16} color="#475569" />}
     </Pressable>
   );
 }
@@ -46,103 +63,158 @@ function ProfileRow({
 export default function ProfileTab() {
   const { profile } = useProviderStore();
   const logout = useLogout();
+  const updateProvider = useUpdateProvider();
 
-  const kycVariant =
-    profile?.kycStatus === 'APPROVED'
-      ? 'success'
-      : profile?.kycStatus === 'REJECTED'
-      ? 'danger'
-      : 'warning';
+  const kycStatus = profile?.kycStatus ?? 'PENDING';
+  const kyc = kycProps(kycStatus as KycStatus);
 
-  const kycLabel =
-    profile?.kycStatus === 'APPROVED'
-      ? 'Vérifié'
-      : profile?.kycStatus === 'REJECTED'
-      ? 'Rejeté'
-      : 'En attente';
+  const toggleAvailable = () => {
+    if (!profile) return;
+    updateProvider.mutate({ available: !profile.available });
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary">
-      <ScrollView>
-        {/* Avatar section */}
-        <View className="items-center py-6 gap-3 px-6">
+    <SafeAreaView className="flex-1 bg-primary" edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* ─── Avatar ─────────────────────────── */}
+        <View className="items-center pt-6 pb-5 px-5" style={{ gap: 10 }}>
           <View className="w-20 h-20 rounded-full bg-accent items-center justify-center">
             <Text className="text-white text-3xl font-bold">
-              {profile?.user?.firstName?.[0] ?? '?'}
+              {profile?.user?.firstName?.[0]?.toUpperCase() ?? '?'}
             </Text>
           </View>
-          <View className="items-center gap-1">
+
+          <View className="items-center" style={{ gap: 4 }}>
             <Text className="text-white text-xl font-bold">
               {profile?.user?.firstName} {profile?.user?.lastName}
             </Text>
             <Text className="text-slate-400 text-sm">{profile?.user?.phone}</Text>
-            <Badge label={kycLabel} variant={kycVariant} />
+            <Badge label={kyc.label} variant={kyc.variant} />
           </View>
 
-          {profile?.rating != null && (
-            <View className="flex-row items-center gap-4">
+          {/* Stats */}
+          {profile && (
+            <View
+              className="flex-row bg-slate-800 rounded-2xl px-6 py-3"
+              style={{ gap: 24 }}
+            >
               <View className="items-center">
                 <Text className="text-white font-bold text-lg">
-                  ⭐ {formatRating(profile.rating)}
+                  ⭐ {formatRating(profile.rating ?? 0)}
                 </Text>
-                <Text className="text-slate-400 text-xs">{profile.reviewCount} avis</Text>
+                <Text className="text-slate-400 text-xs">
+                  {profile.reviewCount ?? 0} avis
+                </Text>
               </View>
-              <View className="w-px h-8 bg-slate-700" />
+              <View className="w-px bg-slate-700" />
               <View className="items-center">
-                <Text className="text-white font-bold text-lg">{profile.completedJobs}</Text>
+                <Text className="text-white font-bold text-lg">
+                  {profile.completedJobs ?? 0}
+                </Text>
                 <Text className="text-slate-400 text-xs">missions</Text>
               </View>
+              {profile.experience ? (
+                <>
+                  <View className="w-px bg-slate-700" />
+                  <View className="items-center">
+                    <Text className="text-white font-bold text-lg">
+                      {profile.experience}
+                    </Text>
+                    <Text className="text-slate-400 text-xs">ans exp.</Text>
+                  </View>
+                </>
+              ) : null}
             </View>
           )}
         </View>
 
-        {/* Menu */}
-        <View className="bg-slate-800 mx-4 rounded-2xl overflow-hidden">
-          <ProfileRow
-            icon={<Edit size={16} color="#94a3b8" />}
-            label="Modifier mon profil"
+        {/* ─── Disponibilité toggle ────────────── */}
+        <View className="mx-4 mb-4 bg-slate-800 rounded-2xl overflow-hidden">
+          <MenuRow
+            icon={<ToggleLeft size={16} color="#22c55e" />}
+            label="Disponible"
+            sublabel={
+              profile?.available
+                ? 'Vous acceptez de nouvelles demandes'
+                : 'Vous n\'acceptez pas de nouvelles demandes'
+            }
+            rightEl={
+              <Switch
+                value={profile?.available ?? false}
+                onValueChange={toggleAvailable}
+                trackColor={{ false: '#334155', true: '#3b82f6' }}
+                thumbColor="#ffffff"
+              />
+            }
+          />
+        </View>
+
+        {/* ─── Menu principal ──────────────────── */}
+        <View className="mx-4 bg-slate-800 rounded-2xl overflow-hidden mb-4">
+          <MenuRow
+            icon={<Edit2 size={16} color="#94a3b8" />}
+            label="Modifier le profil"
+            sublabel="Bio, expérience, ville"
             onPress={() => router.push('/(app)/(profile)/edit' as any)}
           />
-          <ProfileRow
+          <MenuRow
             icon={<Briefcase size={16} color="#94a3b8" />}
             label="Mes services"
+            sublabel={`${profile?.services?.length ?? 0} service${(profile?.services?.length ?? 0) !== 1 ? 's' : ''} actif${(profile?.services?.length ?? 0) !== 1 ? 's' : ''}`}
             onPress={() => router.push('/(app)/(profile)/services' as any)}
           />
-          <ProfileRow
+          <MenuRow
             icon={<Clock size={16} color="#94a3b8" />}
-            label="Mes disponibilités"
+            label="Disponibilités"
+            sublabel="Jours et horaires"
             onPress={() => router.push('/(app)/(profile)/availability' as any)}
           />
-          <ProfileRow
+          <MenuRow
             icon={<FileText size={16} color="#94a3b8" />}
             label="Documents KYC"
+            sublabel={kyc.label}
             onPress={() => router.push('/(app)/(profile)/documents' as any)}
-            badge={profile?.kycStatus !== 'APPROVED' ? kycLabel : undefined}
+            rightEl={
+              kycStatus !== 'APPROVED' ? (
+                <Badge label={kyc.label} variant={kyc.variant} />
+              ) : (
+                <ChevronRight size={16} color="#475569" />
+              )
+            }
           />
-          <ProfileRow
-            icon={<SendHorizonal size={16} color="#94a3b8" />}
-            label="Mes offres envoyées"
+          <MenuRow
+            icon={<Send size={16} color="#94a3b8" />}
+            label="Mes offres"
+            sublabel="Suivi des offres envoyées"
             onPress={() => router.push('/(app)/(profile)/offers' as any)}
           />
-          <ProfileRow
-            icon={<Star size={16} color="#94a3b8" />}
-            label="Mes statistiques"
+          <MenuRow
+            icon={<TrendingUp size={16} color="#94a3b8" />}
+            label="Statistiques"
             onPress={() => router.push('/(app)/(profile)/stats' as any)}
           />
-          <ProfileRow
+        </View>
+
+        {/* ─── Paramètres ──────────────────────── */}
+        <View className="mx-4 bg-slate-800 rounded-2xl overflow-hidden mb-4">
+          <MenuRow
             icon={<Settings size={16} color="#94a3b8" />}
             label="Paramètres"
+            sublabel="Mot de passe, compte"
             onPress={() => router.push('/(app)/(profile)/settings' as any)}
           />
         </View>
 
-        {/* Logout */}
+        {/* ─── Déconnexion ─────────────────────── */}
         <Pressable
           onPress={() => logout.mutate()}
-          className="flex-row items-center justify-center gap-2 mx-4 mt-4 mb-8 py-4 rounded-2xl border border-danger/40"
+          disabled={logout.isPending}
+          className="mx-4 flex-row items-center justify-center gap-2 py-4 rounded-2xl border border-danger/40"
         >
           <LogOut size={18} color="#ef4444" />
-          <Text className="text-danger font-semibold">Se déconnecter</Text>
+          <Text className="text-danger font-semibold">
+            {logout.isPending ? 'Déconnexion…' : 'Se déconnecter'}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

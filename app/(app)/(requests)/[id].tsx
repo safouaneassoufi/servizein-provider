@@ -1,7 +1,7 @@
-import { ScrollView, Text, View, Image, Pressable, Alert } from 'react-native';
+import { ScrollView, Text, View, Image, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { MapPin, Clock, Tag, User, Images } from 'lucide-react-native';
+import { MapPin, Clock, Tag, User, AlertCircle } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -25,36 +25,58 @@ function useRequest(id: string) {
 
 export default function RequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: request, isLoading } = useRequest(id);
+  const { data: request, isLoading, error } = useRequest(id);
   const { profile } = useProviderStore();
 
-  const canSendOffer =
-    profile?.kycStatus === 'APPROVED' && request?.status === 'OPEN';
+  const kycApproved = profile?.kycStatus === 'APPROVED';
+  const canSendOffer = kycApproved && request?.status === 'OPEN';
 
   if (isLoading) return <LoadingSpinner full />;
-  if (!request) return null;
+  if (error || !request) {
+    return (
+      <SafeAreaView className="flex-1 bg-primary">
+        <ScreenHeader title="Demande" back />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-slate-400">Demande introuvable</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const badge = requestStatusBadge(request.status);
 
   return (
-    <SafeAreaView className="flex-1 bg-primary">
+    <SafeAreaView className="flex-1 bg-primary" edges={['top']}>
       <ScreenHeader title="Détail de la demande" back />
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
-        {/* Header */}
-        <View className="bg-slate-800 rounded-2xl p-4 gap-3">
-          <View className="flex-row items-start justify-between">
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ─── Catégorie + statut ─────────────── */}
+        <View className="bg-slate-800 rounded-2xl p-4" style={{ gap: 10 }}>
+          <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Tag size={14} color="#64748b" />
-              <Text className="text-slate-400 text-sm">{request.category?.name}</Text>
+              <Text className="text-accent text-sm font-medium">
+                {request.category?.name}
+              </Text>
             </View>
             <Badge {...badge} />
           </View>
           <Text className="text-white text-base leading-6">{request.description}</Text>
+          <Text className="text-slate-500 text-xs">
+            {request.offerCount} offre{request.offerCount !== 1 ? 's' : ''} reçue
+            {request.offerCount !== 1 ? 's' : ''}
+          </Text>
         </View>
 
-        {/* Client info */}
-        <View className="bg-slate-800 rounded-2xl p-4 gap-3">
-          <Text className="text-slate-400 text-sm font-medium">Client</Text>
+        {/* ─── Client ─────────────────────────── */}
+        <View className="bg-slate-800 rounded-2xl p-4" style={{ gap: 10 }}>
+          <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wide">
+            Client
+          </Text>
           <View className="flex-row items-center gap-3">
             <View className="w-10 h-10 rounded-full bg-slate-700 items-center justify-center">
               <User size={18} color="#94a3b8" />
@@ -65,42 +87,44 @@ export default function RequestDetailScreen() {
           </View>
         </View>
 
-        {/* Details */}
-        <View className="bg-slate-800 rounded-2xl p-4 gap-4">
-          <Text className="text-slate-400 text-sm font-medium">Informations</Text>
-          {request.city && (
+        {/* ─── Infos ──────────────────────────── */}
+        <View className="bg-slate-800 rounded-2xl p-4" style={{ gap: 10 }}>
+          <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wide">
+            Informations
+          </Text>
+          {request.city ? (
             <View className="flex-row items-center gap-2">
-              <MapPin size={16} color="#64748b" />
+              <MapPin size={15} color="#64748b" />
               <Text className="text-white">{request.city}</Text>
             </View>
-          )}
+          ) : null}
           <View className="flex-row items-center gap-2">
-            <Clock size={16} color="#64748b" />
-            <Text className="text-white">{formatDateTime(request.createdAt)}</Text>
+            <Clock size={15} color="#64748b" />
+            <Text className="text-white">
+              Publiée {formatRelative(request.createdAt)}
+            </Text>
           </View>
           <View className="flex-row items-center gap-2">
-            <Clock size={16} color="#64748b" />
+            <Clock size={15} color="#64748b" />
             <Text className="text-slate-400 text-sm">
               Expire {formatRelative(request.expiresAt)}
             </Text>
           </View>
-          <Text className="text-slate-400 text-sm">
-            {request.offerCount} offre{request.offerCount !== 1 ? 's' : ''} reçue
-            {request.offerCount !== 1 ? 's' : ''}
-          </Text>
         </View>
 
-        {/* Photos */}
+        {/* ─── Photos ─────────────────────────── */}
         {request.photoUrls?.length > 0 && (
-          <View className="gap-2">
-            <Text className="text-slate-400 text-sm font-medium">Photos</Text>
+          <View style={{ gap: 8 }}>
+            <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wide px-1">
+              Photos ({request.photoUrls.length})
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2">
                 {request.photoUrls.map((url, idx) => (
                   <Image
                     key={idx}
                     source={{ uri: url }}
-                    className="w-24 h-24 rounded-xl"
+                    style={{ width: 100, height: 100, borderRadius: 12 }}
                     resizeMode="cover"
                   />
                 ))}
@@ -109,19 +133,25 @@ export default function RequestDetailScreen() {
           </View>
         )}
 
-        {/* KYC warning */}
-        {profile?.kycStatus !== 'APPROVED' && (
-          <View className="bg-warning/10 border border-warning/30 rounded-2xl p-4">
-            <Text className="text-warning text-sm">
-              ⚠️ Votre compte doit être vérifié pour envoyer des offres.
+        {/* ─── KYC warning ────────────────────── */}
+        {!kycApproved && (
+          <View className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex-row items-center gap-3">
+            <AlertCircle size={18} color="#f59e0b" />
+            <Text className="flex-1 text-amber-400 text-sm leading-5">
+              Votre compte doit être vérifié (KYC) pour envoyer des offres.
             </Text>
           </View>
         )}
 
-        {/* CTA */}
-        {canSendOffer && (
+        {/* ─── CTA ────────────────────────────── */}
+        {request.status === 'OPEN' && (
           <Button
-            title="Envoyer une offre"
+            title={
+              canSendOffer
+                ? 'Envoyer une offre'
+                : 'KYC requis pour envoyer une offre'
+            }
+            disabled={!canSendOffer}
             size="lg"
             onPress={() =>
               router.push(`/(app)/(requests)/offer/${request.id}` as any)

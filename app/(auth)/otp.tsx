@@ -13,77 +13,108 @@ export default function OtpScreen() {
     purpose: 'REGISTER' | 'RESET_PASSWORD';
   }>();
 
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [resendTimer, setResendTimer] = useState(60);
-  const refs = useRef<TextInput[]>([]);
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [timer, setTimer] = useState(60);
+  const refs = useRef<(TextInput | null)[]>([]);
   const verifyOtp = useVerifyOtp();
 
   useEffect(() => {
-    if (resendTimer <= 0) return;
-    const t = setTimeout(() => setResendTimer((p) => p - 1), 1000);
+    if (timer <= 0) return;
+    const t = setTimeout(() => setTimer((p) => p - 1), 1000);
     return () => clearTimeout(t);
-  }, [resendTimer]);
+  }, [timer]);
+
+  const code = digits.join('');
 
   const handleChange = (val: string, idx: number) => {
     if (!/^\d?$/.test(val)) return;
-    const next = [...code];
+    const next = [...digits];
     next[idx] = val;
-    setCode(next);
+    setDigits(next);
     if (val && idx < 5) refs.current[idx + 1]?.focus();
   };
 
   const handleKeyPress = (key: string, idx: number) => {
-    if (key === 'Backspace' && !code[idx] && idx > 0) {
+    if (key === 'Backspace' && !digits[idx] && idx > 0) {
       refs.current[idx - 1]?.focus();
     }
   };
 
   const handleVerify = async () => {
-    const fullCode = code.join('');
-    if (fullCode.length < 6) return;
+    if (code.length < 6) return;
     try {
       if (purpose === 'RESET_PASSWORD') {
         router.push({
           pathname: '/(auth)/reset-password',
-          params: { phone, code: fullCode },
+          params: { phone, code },
         } as any);
         return;
       }
-      await verifyOtp.mutateAsync({ phone, code: fullCode, purpose });
+      await verifyOtp.mutateAsync({ phone, code, purpose });
     } catch (e: any) {
-      Alert.alert('Code invalide', e?.response?.data?.message ?? 'Vérifiez votre code');
+      Alert.alert(
+        'Code invalide',
+        e?.response?.data?.message ?? 'Vérifiez le code et réessayez',
+      );
+      setDigits(['', '', '', '', '', '']);
+      refs.current[0]?.focus();
     }
   };
 
   const handleResend = async () => {
     try {
       await authApi.forgotPassword(phone);
-      setResendTimer(60);
-    } catch {}
+      setTimer(60);
+      Alert.alert('Code renvoyé', `Un nouveau code a été envoyé au ${phone}`);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de renvoyer le code');
+    }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-primary">
       <ScreenHeader title="Code de vérification" back />
-      <View className="flex-1 px-6 gap-6 mt-6">
-        <Text className="text-slate-400 text-center leading-6">
-          Un code à 6 chiffres a été envoyé au{'\n'}
-          <Text className="text-white font-semibold">{phone}</Text>
-        </Text>
 
-        {/* OTP inputs */}
-        <View className="flex-row justify-center gap-3">
-          {code.map((digit, idx) => (
+      <View className="flex-1 px-6" style={{ gap: 24, marginTop: 24 }}>
+        <View style={{ gap: 6 }}>
+          <Text className="text-white text-xl font-bold">
+            Entrez votre code
+          </Text>
+          <Text className="text-slate-400 leading-6">
+            Code envoyé au{' '}
+            <Text className="text-white font-semibold">{phone}</Text>
+          </Text>
+        </View>
+
+        {/* OTP boxes */}
+        <View className="flex-row justify-center" style={{ gap: 10 }}>
+          {digits.map((digit, idx) => (
             <TextInput
               key={idx}
-              ref={(el) => { if (el) refs.current[idx] = el; }}
-              className="w-12 h-14 border border-slate-700 rounded-xl bg-slate-800 text-white text-center text-xl font-bold"
+              ref={(el) => {
+                refs.current[idx] = el;
+              }}
+              style={{
+                width: 48,
+                height: 56,
+                borderWidth: 2,
+                borderColor: digit ? '#3b82f6' : '#334155',
+                borderRadius: 14,
+                backgroundColor: '#1e293b',
+                color: 'white',
+                textAlign: 'center',
+                fontSize: 22,
+                fontWeight: '700',
+              }}
               value={digit}
               onChangeText={(v) => handleChange(v, idx)}
-              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, idx)}
+              onKeyPress={({ nativeEvent }) =>
+                handleKeyPress(nativeEvent.key, idx)
+              }
               keyboardType="number-pad"
               maxLength={1}
               selectTextOnFocus
+              autoFocus={idx === 0}
             />
           ))}
         </View>
@@ -92,14 +123,16 @@ export default function OtpScreen() {
           title="Vérifier"
           onPress={handleVerify}
           loading={verifyOtp.isPending}
-          disabled={code.join('').length < 6}
+          disabled={code.length < 6}
           size="lg"
         />
 
+        {/* Resend */}
         <View className="items-center">
-          {resendTimer > 0 ? (
+          {timer > 0 ? (
             <Text className="text-slate-400 text-sm">
-              Renvoyer dans {resendTimer}s
+              Renvoyer dans{' '}
+              <Text className="text-white font-semibold">{timer}s</Text>
             </Text>
           ) : (
             <Button
@@ -111,9 +144,12 @@ export default function OtpScreen() {
         </View>
 
         {/* Dev hint */}
-        <Text className="text-slate-600 text-xs text-center">
-          En développement, utilisez le code 123456
-        </Text>
+        <View className="bg-slate-800/60 rounded-xl p-3">
+          <Text className="text-slate-500 text-xs text-center">
+            🛠 Dev: utilisez le code{' '}
+            <Text className="text-slate-300 font-mono">123456</Text>
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
