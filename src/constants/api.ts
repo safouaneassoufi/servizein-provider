@@ -1,11 +1,8 @@
 import Constants from 'expo-constants';
 
-const ENV = Constants.expoConfig?.extra?.env ?? 'development';
-
-export const API_BASE_URL =
-  ENV === 'production'
-    ? 'https://api.servizein.ma/api/v1'
-    : 'http://172.20.10.5:3000/api/v1';
+// Read directly from app.json extra — change apiUrl to your backend IP/URL for dev
+export const API_BASE_URL: string =
+  Constants.expoConfig?.extra?.apiUrl ?? 'http://172.20.10.5:3000/api/v1';
 
 export const ENDPOINTS = {
   // Auth
