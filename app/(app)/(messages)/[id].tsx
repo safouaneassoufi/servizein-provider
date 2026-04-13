@@ -15,7 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime, userName } from '@/utils/format';
 import type { Booking } from '@/types';
 
 interface Message {
@@ -108,9 +108,7 @@ export default function ChatScreen() {
 
   if (isLoading) return <LoadingSpinner full />;
 
-  const clientName = mission
-    ? `${mission.client?.firstName} ${mission.client?.lastName}`
-    : 'Client';
+  const clientName = mission ? userName(mission.client) : 'Client';
 
   return (
     <SafeAreaView className="flex-1 bg-primary" edges={['top', 'bottom']}>

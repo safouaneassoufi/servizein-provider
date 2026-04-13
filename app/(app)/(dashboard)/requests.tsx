@@ -79,9 +79,12 @@ export default function RequestsTab() {
   const [selectedCity, setSelectedCity] = useState('Toutes');
   const [search, setSearch] = useState('');
 
-  const { data: requests, isLoading, refetch } = useMarketplaceRequests({
-    city: selectedCity !== 'Toutes' ? selectedCity : undefined,
-  });
+  const { data: allRequests, isLoading, refetch } = useMarketplaceRequests({});
+
+  // Client-side city filter (backend doesn't support city param)
+  const requests = selectedCity !== 'Toutes'
+    ? (allRequests ?? []).filter((r) => r.city === selectedCity)
+    : allRequests;
 
   const filtered = (requests ?? []).filter((r) =>
     search

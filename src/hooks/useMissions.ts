@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { missionsApi } from '@/api/missions.api';
+import type { BookingStatus } from '@/types';
 
-export function useMissions(status?: string) {
+export function useMissions(statusFilter?: string) {
   return useQuery({
-    queryKey: ['missions', status],
-    queryFn: () => missionsApi.getAll(status),
+    queryKey: ['missions', statusFilter],
+    queryFn: async () => {
+      const all = await missionsApi.getAll();
+      if (!statusFilter) return all;
+      return all.filter((b) => b.status === statusFilter);
+    },
     staleTime: 1000 * 30,
   });
 }
@@ -20,7 +25,7 @@ export function useMission(id: string) {
 export function useUpdateMissionStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    mutationFn: ({ id, status }: { id: string; status: BookingStatus }) =>
       missionsApi.updateStatus(id, status),
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: ['missions'] });

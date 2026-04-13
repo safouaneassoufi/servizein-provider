@@ -7,18 +7,18 @@ import { router } from 'expo-router';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { useForgotPassword } from '@/hooks/useAuth';
+import { useSendOtp } from '@/hooks/useAuth';
 
 const schema = z.object({
   phone: z
     .string()
-    .regex(/^\+212[5-7]\d{8}$/, 'Numéro marocain invalide (+212XXXXXXXXX)'),
+    .regex(/^\+212[0-9]{9}$/, 'Format requis : +212XXXXXXXXX'),
 });
 
 type Form = z.infer<typeof schema>;
 
 export default function ForgotPasswordScreen() {
-  const forgotPassword = useForgotPassword();
+  const sendOtp = useSendOtp();
   const {
     control,
     handleSubmit,
@@ -27,22 +27,23 @@ export default function ForgotPasswordScreen() {
 
   const onSubmit = async (data: Form) => {
     try {
-      await forgotPassword.mutateAsync(data.phone);
+      await sendOtp.mutateAsync(data.phone);
       router.push({
         pathname: '/(auth)/otp',
         params: { phone: data.phone, purpose: 'RESET_PASSWORD' },
-      });
+      } as any);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Numéro introuvable');
+      const msg = e?.response?.data?.message ?? 'Numéro introuvable';
+      Alert.alert('Erreur', Array.isArray(msg) ? msg.join('\n') : msg);
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-primary">
       <ScreenHeader title="Mot de passe oublié" back />
-      <View className="flex-1 px-6 gap-6 mt-6">
+      <View className="flex-1 px-5" style={{ gap: 20, paddingTop: 16 }}>
         <Text className="text-slate-400 leading-6">
-          Entrez votre numéro de téléphone et nous vous enverrons un code pour réinitialiser votre mot de passe.
+          Entrez votre numéro de téléphone enregistré. Nous vous enverrons un code de vérification.
         </Text>
 
         <Controller
@@ -64,7 +65,7 @@ export default function ForgotPasswordScreen() {
         <Button
           title="Envoyer le code"
           onPress={handleSubmit(onSubmit)}
-          loading={forgotPassword.isPending}
+          loading={sendOtp.isPending}
           size="lg"
         />
       </View>

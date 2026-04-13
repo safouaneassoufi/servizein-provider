@@ -205,7 +205,7 @@ export default function MissionDetailScreen() {
                 <User size={18} color="#94a3b8" />
               </View>
               <Text className="text-white font-semibold">
-                {mission.client?.firstName} {mission.client?.lastName}
+                {mission.client?.name ?? 'Client'}
               </Text>
             </View>
             <Pressable className="w-9 h-9 rounded-full bg-accent/20 items-center justify-center">
@@ -222,7 +222,7 @@ export default function MissionDetailScreen() {
           <View className="flex-row items-center gap-2">
             <Calendar size={15} color="#64748b" />
             <Text className="text-white">
-              {formatDate(mission.scheduledAt, 'EEEE dd MMMM yyyy')}
+              {formatDate(mission.scheduledDate, 'EEEE dd MMMM yyyy')}
             </Text>
           </View>
           {mission.slot ? (
@@ -234,7 +234,11 @@ export default function MissionDetailScreen() {
           {mission.address ? (
             <View className="flex-row items-start gap-2">
               <MapPin size={15} color="#64748b" />
-              <Text className="flex-1 text-white leading-5">{mission.address}</Text>
+              <Text className="flex-1 text-white leading-5">
+                {typeof mission.address === 'string'
+                  ? mission.address
+                  : `${mission.address.line1}, ${mission.address.city}`}
+              </Text>
             </View>
           ) : null}
           {mission.notes ? (

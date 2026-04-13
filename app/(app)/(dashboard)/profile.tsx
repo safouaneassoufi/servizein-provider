@@ -2,38 +2,25 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
-  ChevronRight,
-  Settings,
-  Star,
-  Briefcase,
-  FileText,
-  Clock,
-  LogOut,
-  Edit2,
-  Send,
-  TrendingUp,
-  ToggleLeft,
+  ChevronRight, Settings, Star, Briefcase, FileText,
+  Clock, LogOut, Edit2, Send, TrendingUp, ToggleLeft,
 } from 'lucide-react-native';
 import { useProviderStore } from '@/store/provider.store';
-import { useLogout, useProviderProfile } from '@/hooks/useAuth';
+import { useLogout } from '@/hooks/useAuth';
 import { useUpdateProvider } from '@/hooks/useProvider';
 import { Badge } from '@/components/ui/Badge';
-import { formatRating } from '@/utils/format';
+import { formatRating, userName, userInitials } from '@/utils/format';
 import type { KycStatus } from '@/types';
 
-function kycProps(status: KycStatus): { label: string; variant: 'success' | 'warning' | 'danger' } {
-  if (status === 'APPROVED') return { label: '✓ Vérifié', variant: 'success' };
-  if (status === 'REJECTED') return { label: '✗ Rejeté', variant: 'danger' };
-  if (status === 'UNDER_REVIEW') return { label: 'En examen', variant: 'warning' };
+function kycProps(s: KycStatus): { label: string; variant: 'success' | 'warning' | 'danger' } {
+  if (s === 'APPROVED') return { label: '✓ Vérifié', variant: 'success' };
+  if (s === 'REJECTED') return { label: '✗ Rejeté', variant: 'danger' };
+  if (s === 'UNDER_REVIEW') return { label: 'En examen', variant: 'warning' };
   return { label: 'Non vérifié', variant: 'warning' };
 }
 
 function MenuRow({
-  icon,
-  label,
-  sublabel,
-  onPress,
-  rightEl,
+  icon, label, sublabel, onPress, rightEl,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -51,9 +38,7 @@ function MenuRow({
       </View>
       <View className="flex-1">
         <Text className="text-white font-medium">{label}</Text>
-        {sublabel ? (
-          <Text className="text-slate-400 text-xs mt-0.5">{sublabel}</Text>
-        ) : null}
+        {sublabel ? <Text className="text-slate-400 text-xs mt-0.5">{sublabel}</Text> : null}
       </View>
       {rightEl ?? <ChevronRight size={16} color="#475569" />}
     </Pressable>
@@ -65,70 +50,54 @@ export default function ProfileTab() {
   const logout = useLogout();
   const updateProvider = useUpdateProvider();
 
-  const kycStatus = profile?.kycStatus ?? 'PENDING';
-  const kyc = kycProps(kycStatus as KycStatus);
-
-  const toggleAvailable = () => {
-    if (!profile) return;
-    updateProvider.mutate({ available: !profile.available });
-  };
+  const kycStatus = (profile?.kycStatus ?? 'PENDING') as KycStatus;
+  const kyc = kycProps(kycStatus);
 
   return (
     <SafeAreaView className="flex-1 bg-primary" edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* ─── Avatar ─────────────────────────── */}
+
+        {/* Avatar */}
         <View className="items-center pt-6 pb-5 px-5" style={{ gap: 10 }}>
           <View className="w-20 h-20 rounded-full bg-accent items-center justify-center">
             <Text className="text-white text-3xl font-bold">
-              {profile?.user?.firstName?.[0]?.toUpperCase() ?? '?'}
+              {userInitials(profile?.user)}
             </Text>
           </View>
-
           <View className="items-center" style={{ gap: 4 }}>
             <Text className="text-white text-xl font-bold">
-              {profile?.user?.firstName} {profile?.user?.lastName}
+              {userName(profile?.user)}
             </Text>
-            <Text className="text-slate-400 text-sm">{profile?.user?.phone}</Text>
+            <Text className="text-slate-400 text-sm">{profile?.user?.phone ?? ''}</Text>
             <Badge label={kyc.label} variant={kyc.variant} />
           </View>
 
-          {/* Stats */}
-          {profile && (
-            <View
-              className="flex-row bg-slate-800 rounded-2xl px-6 py-3"
-              style={{ gap: 24 }}
-            >
-              <View className="items-center">
-                <Text className="text-white font-bold text-lg">
-                  ⭐ {formatRating(profile.rating ?? 0)}
-                </Text>
-                <Text className="text-slate-400 text-xs">
-                  {profile.reviewCount ?? 0} avis
-                </Text>
-              </View>
-              <View className="w-px bg-slate-700" />
-              <View className="items-center">
-                <Text className="text-white font-bold text-lg">
-                  {profile.completedJobs ?? 0}
-                </Text>
-                <Text className="text-slate-400 text-xs">missions</Text>
-              </View>
-              {profile.experience ? (
-                <>
-                  <View className="w-px bg-slate-700" />
-                  <View className="items-center">
-                    <Text className="text-white font-bold text-lg">
-                      {profile.experience}
-                    </Text>
-                    <Text className="text-slate-400 text-xs">ans exp.</Text>
-                  </View>
-                </>
-              ) : null}
+          {/* Stats row */}
+          <View className="flex-row bg-slate-800 rounded-2xl px-6 py-3" style={{ gap: 20 }}>
+            <View className="items-center">
+              <Text className="text-white font-bold text-lg">
+                ⭐ {formatRating(profile?.averageRating ?? 0)}
+              </Text>
+              <Text className="text-slate-400 text-xs">{profile?.reviewCount ?? 0} avis</Text>
             </View>
-          )}
+            <View className="w-px bg-slate-700" />
+            <View className="items-center">
+              <Text className="text-white font-bold text-lg">{profile?.completedJobs ?? 0}</Text>
+              <Text className="text-slate-400 text-xs">missions</Text>
+            </View>
+            {profile?.experience ? (
+              <>
+                <View className="w-px bg-slate-700" />
+                <View className="items-center">
+                  <Text className="text-white font-bold text-lg">{profile.experience}</Text>
+                  <Text className="text-slate-400 text-xs">ans exp.</Text>
+                </View>
+              </>
+            ) : null}
+          </View>
         </View>
 
-        {/* ─── Disponibilité toggle ────────────── */}
+        {/* Disponibilité toggle */}
         <View className="mx-4 mb-4 bg-slate-800 rounded-2xl overflow-hidden">
           <MenuRow
             icon={<ToggleLeft size={16} color="#22c55e" />}
@@ -141,15 +110,15 @@ export default function ProfileTab() {
             rightEl={
               <Switch
                 value={profile?.available ?? false}
-                onValueChange={toggleAvailable}
+                onValueChange={(v) => updateProvider.mutate({ available: v })}
                 trackColor={{ false: '#334155', true: '#3b82f6' }}
-                thumbColor="#ffffff"
+                thumbColor="#fff"
               />
             }
           />
         </View>
 
-        {/* ─── Menu principal ──────────────────── */}
+        {/* Menu */}
         <View className="mx-4 bg-slate-800 rounded-2xl overflow-hidden mb-4">
           <MenuRow
             icon={<Edit2 size={16} color="#94a3b8" />}
@@ -160,13 +129,12 @@ export default function ProfileTab() {
           <MenuRow
             icon={<Briefcase size={16} color="#94a3b8" />}
             label="Mes services"
-            sublabel={`${profile?.services?.length ?? 0} service${(profile?.services?.length ?? 0) !== 1 ? 's' : ''} actif${(profile?.services?.length ?? 0) !== 1 ? 's' : ''}`}
+            sublabel={`${profile?.services?.length ?? 0} service(s)`}
             onPress={() => router.push('/(app)/(profile)/services' as any)}
           />
           <MenuRow
             icon={<Clock size={16} color="#94a3b8" />}
             label="Disponibilités"
-            sublabel="Jours et horaires"
             onPress={() => router.push('/(app)/(profile)/availability' as any)}
           />
           <MenuRow
@@ -195,7 +163,7 @@ export default function ProfileTab() {
           />
         </View>
 
-        {/* ─── Paramètres ──────────────────────── */}
+        {/* Settings */}
         <View className="mx-4 bg-slate-800 rounded-2xl overflow-hidden mb-4">
           <MenuRow
             icon={<Settings size={16} color="#94a3b8" />}
@@ -205,7 +173,7 @@ export default function ProfileTab() {
           />
         </View>
 
-        {/* ─── Déconnexion ─────────────────────── */}
+        {/* Logout */}
         <Pressable
           onPress={() => logout.mutate()}
           disabled={logout.isPending}

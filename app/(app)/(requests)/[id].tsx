@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Badge, requestStatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { formatDateTime, formatRelative } from '@/utils/format';
+import { formatDateTime, formatRelative, userName } from '@/utils/format';
 import { useProviderStore } from '@/store/provider.store';
 import type { ServiceRequest } from '@/types';
 
@@ -82,7 +82,7 @@ export default function RequestDetailScreen() {
               <User size={18} color="#94a3b8" />
             </View>
             <Text className="text-white font-semibold">
-              {request.client?.firstName} {request.client?.lastName}
+              {userName(request.client)}
             </Text>
           </View>
         </View>

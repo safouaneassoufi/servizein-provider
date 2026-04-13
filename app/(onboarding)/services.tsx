@@ -38,7 +38,12 @@ export default function ServicesScreen() {
     }
     setLoading(true);
     try {
-      await Promise.all(selected.map((id) => addService.mutateAsync({ categoryId: id })));
+      await Promise.all(
+        selected.map((id) => {
+          const cat = CATEGORIES.find((c) => c.id === id)!;
+          return addService.mutateAsync({ categoryId: id, name: cat.name, priceType: 'QUOTE' });
+        }),
+      );
       router.push('/(onboarding)/zone');
     } catch (e: any) {
       Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de la sauvegarde');

@@ -41,8 +41,7 @@ export function useAcceptCounter() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => offersApi.acceptCounter(id),
-    onSuccess: (_, id) => {
-      qc.invalidateQueries({ queryKey: ['offers', id] });
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['offers', 'mine'] });
       qc.invalidateQueries({ queryKey: ['missions'] });
     },
@@ -53,9 +52,6 @@ export function useRejectCounter() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => offersApi.rejectCounter(id),
-    onSuccess: (_, id) => {
-      qc.invalidateQueries({ queryKey: ['offers', id] });
-      qc.invalidateQueries({ queryKey: ['offers', 'mine'] });
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['offers', 'mine'] }),
   });
 }

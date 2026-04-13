@@ -4,28 +4,35 @@ import { authApi } from '@/api/auth.api';
 import { providerApi } from '@/api/provider.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useProviderStore } from '@/store/provider.store';
-import type { LoginPayload, RegisterPayload, VerifyOtpPayload } from '@/types';
+import type { LoginPayload, RegisterPayload } from '@/types';
 import { registerPushToken } from './usePushNotifications';
 
+// ─── Register (step 1: create account) ───────────────────────────────────────
 export function useRegister() {
   return useMutation({
     mutationFn: (payload: RegisterPayload) => authApi.register(payload),
   });
 }
 
+// ─── Verify OTP (step 2: get tokens) ─────────────────────────────────────────
 export function useVerifyOtp() {
   const { setTokens } = useAuthStore();
   const { setProfile } = useProviderStore();
 
   return useMutation({
-    mutationFn: (payload: VerifyOtpPayload) => authApi.verifyOtp(payload),
-    onSuccess: async (tokens, variables) => {
+    mutationFn: ({ phone, code }: { phone: string; code: string }) =>
+      authApi.verifyOtp(phone, code),
+    onSuccess: async (tokens) => {
       await setTokens(tokens);
-      if (variables.purpose === 'REGISTER') {
-        try {
-          const profile = await providerApi.getMe();
-          setProfile(profile);
-        } catch {}
+      // Try to fetch provider profile (may not exist yet for new registrations)
+      try {
+        const profile = await providerApi.getMe();
+        setProfile(profile);
+        registerPushToken().catch(() => {});
+        // Has profile → go to dashboard
+        router.replace('/(app)/(dashboard)' as any);
+      } catch {
+        // No provider account yet → go to onboarding
         registerPushToken().catch(() => {});
         router.replace('/(onboarding)/identity');
       }
@@ -33,6 +40,7 @@ export function useVerifyOtp() {
   });
 }
 
+// ─── Login ────────────────────────────────────────────────────────────────────
 export function useLogin() {
   const { setTokens } = useAuthStore();
   const { setProfile } = useProviderStore();
@@ -45,25 +53,28 @@ export function useLogin() {
         const profile = await providerApi.getMe();
         setProfile(profile);
         registerPushToken().catch(() => {});
-
+        // Check if onboarding complete (has bio or city)
         if (!profile.bio && !profile.city) {
           router.replace('/(onboarding)/identity');
         } else {
-          router.replace('/(app)/(dashboard)');
+          router.replace('/(app)/(dashboard)' as any);
         }
       } catch {
-        router.replace('/(app)/(dashboard)');
+        // No provider account → onboarding
+        router.replace('/(onboarding)/identity');
       }
     },
   });
 }
 
-export function useForgotPassword() {
+// ─── Send OTP for password reset ──────────────────────────────────────────────
+export function useSendOtp() {
   return useMutation({
-    mutationFn: (phone: string) => authApi.forgotPassword(phone),
+    mutationFn: (phone: string) => authApi.sendOtp(phone),
   });
 }
 
+// ─── Logout ───────────────────────────────────────────────────────────────────
 export function useLogout() {
   const { clearAuth, refreshToken } = useAuthStore();
   const { clear } = useProviderStore();
@@ -84,6 +95,7 @@ export function useLogout() {
   });
 }
 
+// ─── Fetch + cache provider profile ──────────────────────────────────────────
 export function useProviderProfile() {
   const { isAuthenticated } = useAuthStore();
   const { setProfile } = useProviderStore();

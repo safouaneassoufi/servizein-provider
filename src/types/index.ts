@@ -5,58 +5,73 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
+/** Backend RegisterDto expects: name, phone, password (+ optional email) */
 export interface RegisterPayload {
+  name: string;
   phone: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  role: 'PROVIDER';
+  email?: string;
 }
 
+/** Backend LoginDto uses `identifier` (phone or email) */
 export interface LoginPayload {
-  phone: string;
+  identifier: string;
   password: string;
 }
 
 export interface VerifyOtpPayload {
   phone: string;
   code: string;
-  purpose: 'REGISTER' | 'RESET_PASSWORD';
 }
 
-// ─── User / Provider ─────────────────────────────────────────────────────────
+// ─── User ────────────────────────────────────────────────────────────────────
 
 export type KycStatus = 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
-export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED';
+export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'PENDING_VERIFICATION';
 
+/** Shape returned by backend user select */
 export interface UserAccount {
   id: string;
   phone: string;
-  firstName: string;
-  lastName: string;
-  avatar?: string;
-  role: 'CLIENT' | 'PROVIDER' | 'ADMIN';
-  accountStatus: AccountStatus;
-  createdAt: string;
+  name: string; // backend uses `name`, not firstName/lastName
+  email?: string;
+  avatarUrl?: string;
+  roles: string[];
+  status: AccountStatus;
+}
+
+// ─── Provider ────────────────────────────────────────────────────────────────
+
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string;
+  slug?: string;
 }
 
 export interface ProviderService {
   id: string;
   categoryId: string;
   category: Category;
-  basePrice?: number;
+  name: string;
+  description?: string;
+  priceType: 'FIXED' | 'QUOTE';
+  price?: number;
+  duration?: number;
   active: boolean;
 }
 
 export interface AvailabilityRule {
-  dayOfWeek: number; // 0=Sun, 6=Sat
+  id?: string;
+  dayOfWeek: number; // 0=Sun … 6=Sat
   startTime: string; // 'HH:mm'
   endTime: string;
 }
 
+/** Shape returned by GET /provider/me */
 export interface ProviderAccount {
   id: string;
-  userId: string;
+  userId?: string;
   user: UserAccount;
   bio?: string;
   experience?: number;
@@ -64,32 +79,34 @@ export interface ProviderAccount {
   zone?: string;
   available: boolean;
   kycStatus: KycStatus;
-  rating: number;
+  averageRating: number; // backend field name
   reviewCount: number;
   completedJobs: number;
   services: ProviderService[];
   availability?: AvailabilityRule[];
-  createdAt: string;
+  documents?: ProviderDocument[];
 }
 
-export interface ProviderStats {
-  completedJobs: number;
-  pendingOffers: number;
-  activeMissions: number;
-  totalEarnings: number;
-  monthlyEarnings: number;
-  rating: number;
-  reviewCount: number;
-  acceptanceRate: number;
-}
-
-// ─── Category ────────────────────────────────────────────────────────────────
-
-export interface Category {
+export interface ProviderDocument {
   id: string;
-  name: string;
-  icon?: string;
-  slug: string;
+  type: string;
+  url: string;
+  verified: boolean;
+}
+
+/** Shape returned by GET /provider/me/stats */
+export interface ProviderStats {
+  averageRating: number;
+  reviewCount: number;
+  completedJobs: number;
+  cancelledJobs: number;
+  totalEarnings: number;
+  acceptanceRate: number;
+  // computed on frontend
+  rating?: number;
+  monthlyEarnings?: number;
+  activeMissions?: number;
+  pendingOffers?: number;
 }
 
 // ─── Service Request (DEMANDE) ───────────────────────────────────────────────
@@ -99,14 +116,15 @@ export type RequestStatus = 'OPEN' | 'QUOTED' | 'ACCEPTED' | 'CANCELLED' | 'EXPI
 export interface ServiceRequest {
   id: string;
   clientId: string;
-  client: UserAccount;
+  client: { name: string; avatarUrl?: string };
   categoryId: string;
   category: Category;
   description: string;
   photoUrls: string[];
   city?: string;
   status: RequestStatus;
-  offerCount: number;
+  offerCount?: number;         // from _count.offers
+  _count?: { offers: number }; // raw backend shape
   expiresAt: string;
   createdAt: string;
 }
@@ -162,39 +180,39 @@ export type BookingStatus =
   | 'CANCELLED'
   | 'DISPUTED';
 
+/** Shape returned by GET /provider/me/bookings */
 export interface Booking {
   id: string;
-  clientId: string;
-  client: UserAccount;
-  providerId: string;
-  provider: ProviderAccount;
+  clientId?: string;
+  client: { name: string; avatarUrl?: string; phone?: string };
+  providerId?: string;
+  provider?: ProviderAccount;
   offerId?: string;
   offer?: Offer;
-  categoryId: string;
-  category: Category;
-  scheduledAt: string;
+  service?: { name: string; duration?: number };
+  category?: Category;
+  scheduledDate: string; // backend uses scheduledDate
   slot?: string;
   estimatedHours?: number;
   totalAmount: number;
   platformFee: number;
   providerAmount: number;
   status: BookingStatus;
-  address?: string;
+  address?: { line1: string; city: string } | string;
   notes?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 // ─── Notification ────────────────────────────────────────────────────────────
 
 export type NotificationType =
-  | 'NEW_REQUEST'
+  | 'QUOTE_RECEIVED'
   | 'OFFER_ACCEPTED'
   | 'OFFER_REJECTED'
   | 'OFFER_COUNTER'
-  | 'MISSION_CONFIRMED'
-  | 'MISSION_STARTED'
-  | 'MISSION_COMPLETED'
+  | 'BOOKING_CONFIRMED'
+  | 'BOOKING_CANCELLED'
   | 'PAYMENT_RECEIVED'
   | 'REVIEW_RECEIVED'
   | 'KYC_APPROVED'
@@ -203,22 +221,12 @@ export type NotificationType =
 
 export interface Notification {
   id: string;
-  type: NotificationType;
+  type: NotificationType | string;
   title: string;
   body: string;
   data?: Record<string, string>;
   read: boolean;
   createdAt: string;
-}
-
-// ─── Pagination ───────────────────────────────────────────────────────────────
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 // ─── Update DTOs ─────────────────────────────────────────────────────────────
@@ -233,4 +241,13 @@ export interface UpdateProviderPayload {
 
 export interface SetAvailabilityPayload {
   rules: AvailabilityRule[];
+}
+
+export interface AddServicePayload {
+  categoryId: string;
+  name: string;
+  description?: string;
+  priceType: 'FIXED' | 'QUOTE';
+  price?: number;
+  duration?: number;
 }

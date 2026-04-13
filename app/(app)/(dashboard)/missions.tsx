@@ -14,7 +14,7 @@ import { useMissions } from '@/hooks/useMissions';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge, missionStatusBadge } from '@/components/ui/Badge';
-import { formatDate, formatPrice } from '@/utils/format';
+import { formatDate, formatPrice, userName } from '@/utils/format';
 import type { Booking } from '@/types';
 
 const FILTERS = [
@@ -42,7 +42,7 @@ function MissionCard({ item }: { item: Booking }) {
         <View className="flex-1" style={{ gap: 3 }}>
           <Text className="text-slate-400 text-xs">{item.category?.name}</Text>
           <Text className="text-white font-semibold">
-            {item.client?.firstName} {item.client?.lastName}
+            {userName(item.client)}
           </Text>
         </View>
         <Badge {...badge} />
@@ -52,7 +52,7 @@ function MissionCard({ item }: { item: Booking }) {
         <View className="flex-row items-center gap-1.5">
           <Calendar size={13} color="#64748b" />
           <Text className="text-slate-400 text-xs">
-            {formatDate(item.scheduledAt, 'EEE dd MMM yyyy')}
+            {formatDate(item.scheduledDate ?? (item as any).scheduledAt, 'EEE dd MMM yyyy')}
           </Text>
         </View>
         <View className="flex-row items-center gap-1">

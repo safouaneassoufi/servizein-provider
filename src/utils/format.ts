@@ -1,20 +1,19 @@
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export function formatPrice(amount: number): string {
-  return `${amount.toFixed(0)} MAD`;
+  if (isNaN(amount)) return '— MAD';
+  return `${Math.round(amount).toLocaleString('fr-MA')} MAD`;
 }
 
 export function formatDate(dateStr: string, pattern = 'dd MMM yyyy'): string {
   try {
-    return format(parseISO(dateStr), pattern, { locale: fr });
+    const d = parseISO(dateStr);
+    if (!isValid(d)) return dateStr;
+    return format(d, pattern, { locale: fr });
   } catch {
     return dateStr;
   }
-}
-
-export function formatDateShort(dateStr: string): string {
-  return formatDate(dateStr, 'dd/MM/yyyy');
 }
 
 export function formatDateTime(dateStr: string): string {
@@ -23,13 +22,16 @@ export function formatDateTime(dateStr: string): string {
 
 export function formatRelative(dateStr: string): string {
   try {
-    return formatDistanceToNow(parseISO(dateStr), { addSuffix: true, locale: fr });
+    const d = parseISO(dateStr);
+    if (!isValid(d)) return dateStr;
+    return formatDistanceToNow(d, { addSuffix: true, locale: fr });
   } catch {
     return dateStr;
   }
 }
 
 export function formatRating(rating: number): string {
+  if (isNaN(rating) || rating == null) return '—';
   return rating.toFixed(1);
 }
 
@@ -40,11 +42,10 @@ export function formatDuration(hours: number): string {
 }
 
 export function formatPhone(phone: string): string {
-  // +212612345678 → +212 6 12 34 56 78
-  const clean = phone.replace(/\s/g, '');
-  if (clean.startsWith('+212')) {
+  const clean = (phone ?? '').replace(/\s/g, '');
+  if (clean.startsWith('+212') && clean.length === 13) {
     const local = clean.slice(4);
-    return `+212 ${local.slice(0, 1)} ${local.slice(1, 3)} ${local.slice(3, 5)} ${local.slice(5, 7)} ${local.slice(7)}`;
+    return `+212 ${local[0]} ${local.slice(1, 3)} ${local.slice(3, 5)} ${local.slice(5, 7)} ${local.slice(7)}`;
   }
   return phone;
 }
@@ -57,4 +58,18 @@ export function formatSlot(slot: string): string {
     FLEXIBLE: 'Horaire flexible',
   };
   return map[slot] ?? slot;
+}
+
+/** Extract display name from backend user (uses `name` field) */
+export function userName(user?: { name?: string } | null): string {
+  return user?.name ?? 'Utilisateur';
+}
+
+/** Extract initials from name */
+export function userInitials(user?: { name?: string } | null): string {
+  const n = user?.name ?? '';
+  const parts = n.trim().split(' ');
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts[0]) return parts[0][0].toUpperCase();
+  return '?';
 }

@@ -50,7 +50,7 @@ export default function OtpScreen() {
         } as any);
         return;
       }
-      await verifyOtp.mutateAsync({ phone, code, purpose });
+      await verifyOtp.mutateAsync({ phone, code });
     } catch (e: any) {
       Alert.alert(
         'Code invalide',
@@ -63,7 +63,7 @@ export default function OtpScreen() {
 
   const handleResend = async () => {
     try {
-      await authApi.forgotPassword(phone);
+      await authApi.sendOtp(phone);
       setTimer(60);
       Alert.alert('Code renvoyé', `Un nouveau code a été envoyé au ${phone}`);
     } catch {

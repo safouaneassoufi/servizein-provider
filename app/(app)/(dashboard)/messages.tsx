@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatRelative } from '@/utils/format';
+import { formatRelative, userName, userInitials } from '@/utils/format';
 import type { Booking } from '@/types';
 
 // Conversations = missions actives/confirmées
@@ -34,8 +34,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function ConversationItem({ item }: { item: Booking }) {
-  const initials =
-    `${item.client?.firstName?.[0] ?? '?'}${item.client?.lastName?.[0] ?? ''}`.toUpperCase();
+  const initials = userInitials(item.client);
 
   return (
     <Pressable
@@ -51,7 +50,7 @@ function ConversationItem({ item }: { item: Booking }) {
       <View className="flex-1" style={{ gap: 3 }}>
         <View className="flex-row items-center justify-between">
           <Text className="text-white font-semibold">
-            {item.client?.firstName} {item.client?.lastName}
+            {userName(item.client)}
           </Text>
           <Text className="text-slate-500 text-xs">
             {formatRelative(item.updatedAt ?? item.createdAt)}

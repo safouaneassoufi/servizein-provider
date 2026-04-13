@@ -45,10 +45,12 @@ export default function ServicesScreen() {
           <View className="bg-slate-800 rounded-2xl p-4 flex-row items-center gap-3">
             <View className="flex-1">
               <Text className="text-white font-semibold">{item.category?.name}</Text>
-              {item.basePrice && (
+              {item.price ? (
                 <Text className="text-slate-400 text-sm">
-                  Prix de base : {item.basePrice} MAD
+                  Prix : {item.price} MAD
                 </Text>
+              ) : (
+                <Text className="text-slate-500 text-xs">Sur devis</Text>
               )}
             </View>
             <Switch
