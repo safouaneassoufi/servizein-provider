@@ -57,7 +57,7 @@
     },
     "extra": {
       "apiUrl": "http://172.20.10.5:3000/api/v1",
-      "apiUrlProd": "https://api.servizein.ma/api/v1",
+      "apiUrlProd": "https://servizein-api-production.up.railway.app/api/v1",
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID"
       }

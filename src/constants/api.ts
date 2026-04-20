@@ -1,8 +1,9 @@
 import Constants from 'expo-constants';
 
-// Read directly from app.json extra — change apiUrl to your backend IP/URL for dev
-export const API_BASE_URL: string =
-  Constants.expoConfig?.extra?.apiUrl ?? 'http://172.20.10.5:3000/api/v1';
+// In development (__DEV__) use local apiUrl, in production use apiUrlProd (Railway)
+export const API_BASE_URL: string = __DEV__
+  ? (Constants.expoConfig?.extra?.apiUrl ?? 'http://172.20.10.5:3000/api/v1')
+  : (Constants.expoConfig?.extra?.apiUrlProd ?? 'https://servizein-api-production.up.railway.app/api/v1');
 
 export const ENDPOINTS = {
   // Auth
@@ -10,7 +11,6 @@ export const ENDPOINTS = {
   AUTH_VERIFY_OTP: '/auth/verify-otp',
   AUTH_LOGIN: '/auth/login',
   AUTH_REFRESH: '/auth/refresh',
-  AUTH_FORGOT_PASSWORD: '/auth/forgot-password',
   AUTH_RESET_PASSWORD: '/auth/reset-password',
   AUTH_LOGOUT: '/auth/logout',
 
@@ -26,7 +26,7 @@ export const ENDPOINTS = {
 
   // Offers
   OFFERS: '/offers',
-  MY_OFFERS: '/offers/mine',
+  MY_OFFERS: '/offers',
 
   // Missions (bookings from provider POV)
   MISSIONS: '/bookings',
