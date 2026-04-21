@@ -29,7 +29,8 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -59,8 +60,9 @@
       "apiUrl": "http://172.20.10.5:3000/api/v1",
       "apiUrlProd": "https://servizein-api-production.up.railway.app/api/v1",
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "70e1412b-1009-4f8a-8fd8-8bb3a0164fa4"
       }
-    }
+    },
+    "owner": "safouaneassoufi"
   }
 }
