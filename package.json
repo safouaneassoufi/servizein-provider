@@ -13,6 +13,8 @@
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "expo": "~51.0.28",
+    "expo-constants": "~16.0.2",
+    "expo-linking": "~6.3.1",
     "expo-device": "~6.0.2",
     "expo-document-picker": "~12.0.2",
     "expo-font": "~12.0.10",
@@ -39,8 +41,7 @@
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@types/react": "~18.2.45",
-    "@types/react-native": "~0.73.0",
     "ajv": "^8.17.1",
-    "typescript": "^5.3.3"
+    "typescript": "~5.3.3"
   }
 }
