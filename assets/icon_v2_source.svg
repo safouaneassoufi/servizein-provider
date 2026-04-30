@@ -1,0 +1,68 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Dark gradient background -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0f1e"/>
+      <stop offset="100%" stop-color="#1a3058"/>
+    </linearGradient>
+    <!-- Gold gradient -->
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <!-- Blue gradient for house body -->
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <!-- Inner glow for circle -->
+    <radialGradient id="glowRad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#0a0f1e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+  <!-- Subtle inner glow -->
+  <rect width="1024" height="1024" fill="url(#glowRad)"/>
+
+  <!-- Large outer circle (blue outline) -->
+  <circle cx="512" cy="512" r="412" fill="none" stroke="#2563eb" stroke-width="22" opacity="0.9"/>
+
+  <!-- Hexagon (gold outline) — flat-top orientation -->
+  <polygon
+    points="512,208 756,352 756,608 512,752 268,608 268,352"
+    fill="none"
+    stroke="url(#goldGrad)"
+    stroke-width="16"
+    stroke-linejoin="round"
+  />
+
+  <!-- House roof (gold triangle) -->
+  <polygon points="512,292 364,436 660,436" fill="url(#goldGrad)"/>
+
+  <!-- House body (blue rectangle) -->
+  <rect x="388" y="436" width="248" height="188" fill="url(#blueGrad)" rx="4"/>
+
+  <!-- Door (white) -->
+  <rect x="464" y="512" width="96" height="112" fill="white" rx="6"/>
+
+  <!-- Window left -->
+  <rect x="408" y="472" width="44" height="44" fill="white" rx="4" opacity="0.85"/>
+  <!-- Window right -->
+  <rect x="572" y="472" width="44" height="44" fill="white" rx="4" opacity="0.85"/>
+
+  <!-- PRO bar at bottom -->
+  <rect x="294" y="680" width="436" height="72" fill="url(#goldGrad)" rx="14"/>
+  <text
+    x="512"
+    y="731"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="42"
+    font-weight="900"
+    fill="#0a0f1e"
+    text-anchor="middle"
+    letter-spacing="12"
+  >PRO</text>
+</svg>
