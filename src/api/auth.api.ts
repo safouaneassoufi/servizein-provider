@@ -2,42 +2,29 @@ import { apiClient } from './client';
 import type { AuthTokens, LoginPayload, RegisterPayload } from '@/types';
 
 export const authApi = {
-  /** POST /auth/register — expects { name, phone, password } */
-  async register(payload: RegisterPayload): Promise<{ message: string }> {
-    const { data } = await apiClient.post('/auth/register', payload);
-    return data;
+  /** POST /auth/register — creates account; backend sends OTP automatically */
+  register(payload: RegisterPayload): Promise<{ message: string }> {
+    return apiClient.post('/auth/register', payload) as any;
   },
 
-  /** POST /auth/send-otp — sends OTP for registration */
-  async sendOtp(phone: string): Promise<{ message: string }> {
-    const { data } = await apiClient.post('/auth/send-otp', { phone });
-    return data;
+  /** POST /auth/send-otp — (re)sends SMS OTP */
+  sendOtp(phone: string): Promise<{ message: string }> {
+    return apiClient.post('/auth/send-otp', { phone }) as any;
   },
 
-  /** POST /auth/verify-otp — verifies OTP and returns tokens */
-  async verifyOtp(phone: string, code: string): Promise<AuthTokens> {
-    const { data } = await apiClient.post('/auth/verify-otp', { phone, code });
-    return data;
+  /** POST /auth/verify-otp → { accessToken, refreshToken } */
+  verifyOtp(phone: string, code: string): Promise<AuthTokens> {
+    return apiClient.post('/auth/verify-otp', { phone, code }) as any;
   },
 
-  /** POST /auth/login — expects { identifier, password } */
-  async login(payload: LoginPayload): Promise<AuthTokens> {
-    const { data } = await apiClient.post('/auth/login', payload);
-    return data;
+  /** POST /auth/login → { accessToken, refreshToken } */
+  login(payload: LoginPayload): Promise<AuthTokens> {
+    return apiClient.post('/auth/login', payload) as any;
   },
 
   /** POST /auth/reset-password */
-  async resetPassword(
-    phone: string,
-    code: string,
-    newPassword: string,
-  ): Promise<AuthTokens> {
-    const { data } = await apiClient.post('/auth/reset-password', {
-      phone,
-      code,
-      newPassword,
-    });
-    return data;
+  resetPassword(phone: string, code: string, newPassword: string): Promise<AuthTokens> {
+    return apiClient.post('/auth/reset-password', { phone, code, newPassword }) as any;
   },
 
   /** POST /auth/logout */

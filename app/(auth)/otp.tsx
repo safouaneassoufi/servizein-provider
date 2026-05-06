@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { useVerifyOtp } from '@/hooks/useAuth';
 import { authApi } from '@/api/auth.api';
+import { providerApi } from '@/api/provider.api';
+import { useAuthStore } from '@/store/auth.store';
+import { useProviderStore } from '@/store/provider.store';
+import { registerPushToken } from '@/hooks/usePushNotifications';
 
 export default function OtpScreen() {
   const { phone, purpose } = useLocalSearchParams<{
@@ -13,10 +17,12 @@ export default function OtpScreen() {
     purpose: 'REGISTER' | 'RESET_PASSWORD';
   }>();
 
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(60);
-  const refs = useRef<(TextInput | null)[]>([]);
-  const verifyOtp = useVerifyOtp();
+  const [digits, setDigits]   = useState<string[]>(['', '', '', '', '', '']);
+  const [timer, setTimer]     = useState(60);
+  const [loading, setLoading] = useState(false);
+  const refs                  = useRef<(TextInput | null)[]>([]);
+  const { setTokens }         = useAuthStore();
+  const { setProfile }        = useProviderStore();
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -42,15 +48,76 @@ export default function OtpScreen() {
 
   const handleVerify = async () => {
     if (code.length < 6) return;
+
+    // ── RESET PASSWORD: juste rediriger avec le code ──────────────────────────
+    if (purpose === 'RESET_PASSWORD') {
+      router.push({
+        pathname: '/(auth)/reset-password',
+        params: { phone, code },
+      } as any);
+      return;
+    }
+
+    // ── REGISTER: vérifier OTP → tokens → setup provider → navigation ────────
+    setLoading(true);
     try {
-      if (purpose === 'RESET_PASSWORD') {
-        router.push({
-          pathname: '/(auth)/reset-password',
-          params: { phone, code },
-        } as any);
-        return;
+      // 1. Vérifier OTP → récupérer les tokens JWT
+      const tokens = await authApi.verifyOtp(phone, code);
+      await setTokens(tokens);
+
+      // 2. Lire les données sauvegardées lors de l'inscription
+      const [city, servicesStr] = await Promise.all([
+        SecureStore.getItemAsync('pending_city'),
+        SecureStore.getItemAsync('pending_services'),
+      ]);
+
+      // 3. Créer le compte prestataire avec la ville
+      if (city) {
+        try {
+          await providerApi.setup({ city, experience: 0 });
+        } catch {
+          // Le compte prestataire existe peut-être déjà
+        }
       }
-      await verifyOtp.mutateAsync({ phone, code });
+
+      // 4. Ajouter les services sélectionnés (best-effort, ne bloque pas)
+      if (servicesStr) {
+        try {
+          const svcs = JSON.parse(servicesStr) as Array<{ id: string; name: string }>;
+          await Promise.allSettled(
+            svcs.map((s) =>
+              providerApi.addService({
+                categoryId: s.id,
+                name: s.name,
+                priceType: 'QUOTE',
+              }),
+            ),
+          );
+        } catch {}
+      }
+
+      // 5. Nettoyer SecureStore
+      await Promise.allSettled([
+        SecureStore.deleteItemAsync('pending_phone'),
+        SecureStore.deleteItemAsync('pending_city'),
+        SecureStore.deleteItemAsync('pending_services'),
+        SecureStore.deleteItemAsync('pending_photo'),
+      ]);
+
+      // 6. Charger le profil prestataire et naviguer
+      registerPushToken().catch(() => {});
+      try {
+        const profile = await providerApi.getMe();
+        setProfile(profile);
+        // Si ville configurée → dashboard ; sinon → onboarding pour compléter
+        if (profile.city) {
+          router.replace('/(app)/(dashboard)' as any);
+        } else {
+          router.replace('/(onboarding)/identity');
+        }
+      } catch {
+        router.replace('/(onboarding)/identity');
+      }
     } catch (e: any) {
       Alert.alert(
         'Code invalide',
@@ -58,6 +125,8 @@ export default function OtpScreen() {
       );
       setDigits(['', '', '', '', '', '']);
       refs.current[0]?.focus();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,9 +146,7 @@ export default function OtpScreen() {
 
       <View className="flex-1 px-6" style={{ gap: 24, marginTop: 24 }}>
         <View style={{ gap: 6 }}>
-          <Text className="text-white text-xl font-bold">
-            Entrez votre code
-          </Text>
+          <Text className="text-white text-xl font-bold">Entrez votre code</Text>
           <Text className="text-slate-400 leading-6">
             Code envoyé au{' '}
             <Text className="text-white font-semibold">{phone}</Text>
@@ -91,9 +158,7 @@ export default function OtpScreen() {
           {digits.map((digit, idx) => (
             <TextInput
               key={idx}
-              ref={(el) => {
-                refs.current[idx] = el;
-              }}
+              ref={(el) => { refs.current[idx] = el; }}
               style={{
                 width: 48,
                 height: 56,
@@ -108,9 +173,7 @@ export default function OtpScreen() {
               }}
               value={digit}
               onChangeText={(v) => handleChange(v, idx)}
-              onKeyPress={({ nativeEvent }) =>
-                handleKeyPress(nativeEvent.key, idx)
-              }
+              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, idx)}
               keyboardType="number-pad"
               maxLength={1}
               selectTextOnFocus
@@ -122,8 +185,8 @@ export default function OtpScreen() {
         <Button
           title="Vérifier"
           onPress={handleVerify}
-          loading={verifyOtp.isPending}
-          disabled={code.length < 6}
+          loading={loading}
+          disabled={code.length < 6 || loading}
           size="lg"
         />
 
@@ -135,20 +198,8 @@ export default function OtpScreen() {
               <Text className="text-white font-semibold">{timer}s</Text>
             </Text>
           ) : (
-            <Button
-              title="Renvoyer le code"
-              variant="ghost"
-              onPress={handleResend}
-            />
+            <Button title="Renvoyer le code" variant="ghost" onPress={handleResend} />
           )}
-        </View>
-
-        {/* Dev hint */}
-        <View className="bg-slate-800/60 rounded-xl p-3">
-          <Text className="text-slate-500 text-xs text-center">
-            🛠 Dev: utilisez le code{' '}
-            <Text className="text-slate-300 font-mono">123456</Text>
-          </Text>
         </View>
       </View>
     </SafeAreaView>

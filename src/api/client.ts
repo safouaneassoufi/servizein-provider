@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/auth.store';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15_000,
+  timeout: 10_000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -19,7 +19,7 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-// ─── Response interceptor — handle 401 → refresh → retry ─────────────────────
+// ─── Response interceptor — unwrap { success, data, timestamp } + handle 401 ──
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -41,11 +41,24 @@ function processQueue(error: AxiosError | null, token: string | null) {
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Backend wraps all responses: { success, data, timestamp } → return inner data
+    const payload = response.data;
+    return payload?.data !== undefined ? payload.data : payload;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    console.error(
+      '[API]',
+      originalRequest?.method?.toUpperCase(),
+      originalRequest?.url,
+      '→',
+      error.response?.status,
+      (error.response?.data as any)?.message ?? error.message,
+    );
 
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
@@ -64,12 +77,15 @@ apiClient.interceptors.response.use(
       const refreshToken = await storage.getRefreshToken();
       if (!refreshToken) throw new Error('No refresh token');
 
-      const { data } = await axios.post(
+      const { data: raw } = await axios.post(
         `${API_BASE_URL}${ENDPOINTS.AUTH_REFRESH}`,
         { refreshToken },
       );
 
-      const { accessToken, refreshToken: newRefresh } = data;
+      // Backend wraps refresh response too: { success, data: { accessToken, refreshToken } }
+      const tokens = raw?.data ?? raw;
+      const { accessToken, refreshToken: newRefresh } = tokens;
+
       await storage.setTokens(accessToken, newRefresh);
       useAuthStore.getState().setTokens({ accessToken, refreshToken: newRefresh });
 
