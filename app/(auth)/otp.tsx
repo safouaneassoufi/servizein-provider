@@ -74,7 +74,7 @@ export default function OtpScreen() {
       // 3. Créer le compte prestataire avec la ville
       if (city) {
         try {
-          await providerApi.setup({ city, experience: 0 });
+          await providerApi.setup({ city, bio: city || 'Prestataire ServiZein', experience: 0 });
         } catch {
           // Le compte prestataire existe peut-être déjà
         }

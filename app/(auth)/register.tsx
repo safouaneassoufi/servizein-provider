@@ -140,6 +140,9 @@ export default function RegisterScreen() {
         password,
       });
 
+      // Renvoyer l'OTP explicitement (le backend l'envoie aussi automatiquement)
+      await authApi.sendOtp(fullPhone).catch(() => {});
+
       // Persist registration data for after OTP verification
       await Promise.all([
         SecureStore.setItemAsync('pending_phone',    fullPhone),
