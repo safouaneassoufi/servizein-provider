@@ -153,6 +153,13 @@ export default function OtpScreen() {
           </Text>
         </View>
 
+        {/* Hint OTP fixe */}
+        <View style={{ backgroundColor: '#1e3a5f', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
+          <Text style={{ color: '#93c5fd', fontSize: 13, textAlign: 'center', fontWeight: '600' }}>
+            Code de vérification : 123456
+          </Text>
+        </View>
+
         {/* OTP boxes */}
         <View className="flex-row justify-center" style={{ gap: 10 }}>
           {digits.map((digit, idx) => (
